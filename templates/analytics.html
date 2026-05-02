@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - FitZone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Analytics</h1>
+            <p>Detailed insights into your fitness center</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="window.print()">
+                <i class="fas fa-print"></i>
+                <span>Export</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon members">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Members</span>
+                <span class="stat-value">{{ member_growth|sum(attribute='count') }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon revenue">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Revenue</span>
+                <span class="stat-value">${{ "%.2f"|format(revenue_by_month|sum(attribute='revenue')) }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon pending">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Pending Invoices</span>
+                <span class="stat-value">{{ pending_invoices }}</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Paid Invoices</span>
+                <span class="stat-value">{{ paid_invoices }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="card-header">
+                <h3>Member Growth</h3>
+                <span class="card-subtitle">Last 12 months</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="memberGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="card-header">
+                <h3>Revenue by Month</h3>
+                <span class="card-subtitle">Last 12 months</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Section -->
+    <div class="bottom-grid">
+        <!-- Membership Distribution -->
+        <div class="chart-card">
+            <div class="card-header">
+                <h3>Membership Distribution</h3>
+            </div>
+            <div class="chart-container doughnut-container">
+                <canvas id="membershipChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Attendance -->
+        <div class="recent-card">
+            <div class="card-header">
+                <h3>Top Members by Attendance</h3>
+            </div>
+            <div class="recent-list">
+                {% for member in top_attendance %}
+                <div class="recent-item">
+                    <div class="rank">#{{ loop.index }}</div>
+                    <div class="member-info">
+                        <span class="member-name">{{ member[1] }} {{ member[2] }}</span>
+                    </div>
+                    <span class="count">{{ member[3] }} visits</span>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-chart-bar"></i>
+                    <p>No data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Invoice Status -->
+        <div class="chart-card">
+            <div class="card-header">
+                <h3>Invoice Status</h3>
+            </div>
+            <div class="invoice-stats">
+                <div class="invoice-stat">
+                    <div class="invoice-icon pending">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="invoice-info">
+                        <span class="invoice-value">{{ pending_invoices }}</span>
+                        <span class="invoice-label">Pending</span>
+                    </div>
+                </div>
+                <div class="invoice-stat">
+                    <div class="invoice-icon paid">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="invoice-info">
+                        <span class="invoice-value">{{ paid_invoices }}</span>
+                        <span class="invoice-label">Paid</span>
+                    </div>
+                </div>
+                <div class="invoice-stat">
+                    <div class="invoice-icon overdue">
+                        <i class="fas fa-exclamation"></i>
+                    </div>
+                    <div class="invoice-info">
+                        <span class="invoice-value">{{ overdue_invoices }}</span>
+                        <span class="invoice-label">Overdue</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Member Growth Chart
+    const memberGrowthData = {{ member_growth|tojson }};
+    new Chart(document.getElementById('memberGrowthChart'), {
+        type: 'line',
+        data: {
+            labels: memberGrowthData.map(d => d.month),
+            datasets: [{
+                label: 'New Members',
+                data: memberGrowthData.map(d => d.count),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Revenue Chart
+    const revenueData = {{ revenue_by_month|tojson }};
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'bar',
+        data: {
+            labels: revenueData.map(d => d.month),
+            datasets: [{
+                label: 'Revenue',
+                data: revenueData.map(d => d.revenue),
+                backgroundColor: '#764ba2',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: value => '$' + value }
+                }
+            }
+        }
+    });
+
+    // Membership Chart
+    const membershipData = {{ membership_dist|tojson }};
+    new Chart(document.getElementById('membershipChart'), {
+        type: 'doughnut',
+        data: {
+            labels: membershipData.map(d => d[0] || 'None'),
+            datasets: [{
+                data: membershipData.map(d => d[1]),
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            cutout: '60%'
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.user.first_name }} {{ member.user.last_name }} - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <a href="{{ url_for('members') }}" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to Members
+            </a>
+            <h1>{{ member.user.first_name }} {{ member.user.last_name }}</h1>
+            <p>Member Details</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('edit_member', member_id=member.id) }}" class="btn btn-secondary">
+                <i class="fas fa-edit"></i>
+                <span>Edit</span>
+            </a>
+            <form method="POST" action="{{ url_for('generate_workout_plan_route') }}" style="display:inline;">
+                <input type="hidden" name="member_id" value="{{ member.id }}">
+                <input type="hidden" name="duration_weeks" value="4">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-robot"></i>
+                    <span>Generate AI Workout Plan</span>
+                </button>
+            </form>
+            <a href="#" class="btn btn-primary" onclick="showCheckInModal()">
+                <i class="fas fa-qrcode"></i>
+                <span>Check In</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar large">
+                    {{ member.user.first_name[0] }}{{ member.user.last_name[0] }}
+                </div>
+                <h2>{{ member.user.first_name }} {{ member.user.last_name }}</h2>
+                <span class="badge badge-{% if member.membership_type == 'monthly' %}blue{% elif member.membership_type == 'yearly' %}green{% else %}purple{% endif %}">
+                    {{ member.membership_type or 'No Membership' }}
+                </span>
+            </div>
+            <div class="profile-details">
+                <div class="detail-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ member.user.email }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-phone"></i>
+                    <span>{{ member.user.phone or 'Not provided' }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-calendar"></i>
+                    <span>Joined: {{ member.created_at.strftime('%B %d, %Y') }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-id-card"></i>
+                    <span>ID: MEM-{{ "%04d"|format(member.id) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-row">
+            <div class="mini-stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="mini-stat-content">
+                    <span class="mini-stat-value">{{ attendance|length }}</span>
+                    <span class="mini-stat-label">Total Visits</span>
+                </div>
+            </div>
+            <div class="mini-stat-card">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <div class="mini-stat-content">
+                    <span class="mini-stat-value">${{ "%.2f"|format(payments|sum(attribute='amount', default=0)) }}</span>
+                    <span class="mini-stat-label">Total Spent</span>
+                </div>
+            </div>
+            <div class="mini-stat-card">
+                <i class="fas fa-chart-line"></i>
+                <div class="mini-stat-content">
+                    <span class="mini-stat-value">{{ progress|length }}</span>
+                    <span class="mini-stat-label">Progress Records</span>
+                </div>
+            </div>
+            <div class="mini-stat-card">
+                <i class="fas fa-calendar-check"></i>
+                <div class="mini-stat-content">
+                    <span class="mini-stat-value">{{ member.membership_end.strftime('%b %d') if member.membership_end else 'N/A' }}</span>
+                    <span class="mini-stat-label">Membership Ends</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" data-tab="attendance">Attendance</button>
+                <button class="tab" data-tab="payments">Payments</button>
+                <button class="tab" data-tab="progress">Progress</button>
+                <button class="tab" data-tab="invoices">Invoices</button>
+            </div>
+
+            <div class="tab-content active" id="attendance">
+                <h3>Attendance History</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance %}
+                        <tr>
+                            <td>{{ record.check_in.strftime('%b %d, %Y') }}</td>
+                            <td>{{ record.check_in.strftime('%H:%M') }}</td>
+                            <td>{{ record.check_out.strftime('%H:%M') if record.check_out else 'In Gym' }}</td>
+                            <td>{{ record.duration_minutes|default('0') }} min</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="empty-table">No attendance records</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="payments">
+                <h3>Payment History</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Transaction ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.payment_date.strftime('%b %d, %Y') }}</td>
+                            <td>${{ "%.2f"|format(payment.amount) }}</td>
+                            <td>{{ payment.payment_method|title }}</td>
+                            <td>{{ payment.transaction_id }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="empty-table">No payment records</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="progress">
+                <h3>Progress Records</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Weight</th>
+                            <th>Body Fat %</th>
+                            <th>Chest</th>
+                            <th>Waist</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in progress %}
+                        <tr>
+                            <td>{{ record.record_date.strftime('%b %d, %Y') }}</td>
+                            <td>{{ record.weight|default('N/A') }} kg</td>
+                            <td>{{ record.body_fat_percentage|default('N/A') }}%</td>
+                            <td>{{ record.chest|default('N/A') }} cm</td>
+                            <td>{{ record.waist|default('N/A') }} cm</td>
+                            <td>{{ record.notes|default('') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="empty-table">No progress records</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-content" id="invoices">
+                <h3>Invoices</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Amount</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr>
+                            <td>{{ invoice.invoice_number }}</td>
+                            <td>${{ "%.2f"|format(invoice.total_amount) }}</td>
+                            <td>{{ invoice.due_date.strftime('%b %d, %Y') if invoice.due_date else 'N/A' }}</td>
+                            <td>
+                                <span class="status-badge {% if invoice.status == 'paid' %}active{% elif invoice.status == 'pending' %}pending{% else %}expired{% endif %}">
+                                    {{ invoice.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if invoice.status == 'pending' %}
+                                <form method="POST" action="{{ url_for('pay_invoice', invoice_id=invoice.id) }}" style="display:inline;">
+                                    <select name="payment_method" class="payment-select" onchange="this.form.submit()">
+                                        <option value="">Pay Now</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="card">Card</option>
+                                        <option value="bank_transfer">Bank Transfer</option>
+                                    </select>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="empty-table">No invoices</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Check In Modal -->
+<div id="checkInModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h2>Check In Member</h2>
+        <form method="POST" action="{{ url_for('check_in') }}">
+            <input type="hidden" name="member_id" value="{{ member.id }}">
+            <button type="submit" class="btn btn-primary btn-large">
+                <i class="fas fa-qrcode"></i>
+                Check In Now
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function showCheckInModal() {
+    document.getElementById('checkInModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('checkInModal').style.display = 'none';
+}
+
+// Tab functionality
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab).classList.add('active');
+    });
+});
+</script>
+{% endblock %}

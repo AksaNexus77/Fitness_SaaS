@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Invoices - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Invoices</h1>
+            <p>Manage invoices and payments</p>
+        </div>
+        {% if current_user.role == 'admin' %}
+        <div class="header-actions">
+            <a href="{{ url_for('create_invoice') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Create Invoice</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid mini">
+        <div class="stat-card mini">
+            <div class="stat-icon pending">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Pending</span>
+                <span class="stat-value">{{ invoices|selectattr('status', 'equalto', 'pending')|list|length }}</span>
+            </div>
+        </div>
+        <div class="stat-card mini">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Paid</span>
+                <span class="stat-value">{{ invoices|selectattr('status', 'equalto', 'paid')|list|length }}</span>
+            </div>
+        </div>
+        <div class="stat-card mini">
+            <div class="stat-icon danger">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Overdue</span>
+                <span class="stat-value">{{ invoices|selectattr('status', 'equalto', 'pending')|list|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Member</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>
+                        <span class="invoice-number">{{ invoice.invoice_number }}</span>
+                    </td>
+                    <td>
+                        <div class="member-cell">
+                            <div class="avatar small">
+                                {{ invoice.member.user.first_name[0] }}{{ invoice.member.user.last_name[0] }}
+                            </div>
+                            <span>{{ invoice.member.user.first_name }} {{ invoice.member.user.last_name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="amount">${{ "%.2f"|format(invoice.total_amount) }}</span>
+                    </td>
+                    <td>{{ invoice.due_date.strftime('%b %d, %Y') if invoice.due_date else 'N/A' }}</td>
+                    <td>
+                        <span class="status-badge {% if invoice.status == 'paid' %}active{% elif invoice.status == 'pending' %}pending{% else %}expired{% endif %}">
+                            {{ invoice.status|title }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if invoice.status == 'pending' and current_user.role == 'admin' %}
+                            <button class="btn btn-sm btn-success payment-btn" data-invoice-id="{{ invoice.id }}" data-amount="{{ invoice.total_amount }}">
+                                <i class="fas fa-credit-card"></i>
+                                Pay
+                            </button>
+                            {% endif %}
+                            <button class="btn-icon" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="empty-table">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <p>No invoices found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closePaymentModal()">&times;</span>
+        <h2>Process Payment</h2>
+        <p class="payment-amount">Amount: $<span id="paymentAmount">0.00</span></p>
+        <form method="POST" id="paymentForm">
+            <input type="hidden" id="invoiceId" name="invoice_id" value="">
+            <div class="form-group">
+                <label for="payment_method">Payment Method</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="">Select Method</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-check"></i>
+                Confirm Payment
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function showPaymentModal(invoiceId, amount) {
+    document.getElementById('invoiceId').value = invoiceId;
+    document.getElementById('paymentAmount').textContent = amount.toFixed(2);
+    document.getElementById('paymentForm').action = `/invoices/${invoiceId}/pay`;
+    document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+}
+
+// Add event listeners to payment buttons
+document.querySelectorAll('.payment-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const invoiceId = this.dataset.invoiceId;
+        const amount = this.dataset.amount;
+        showPaymentModal(parseInt(invoiceId), parseFloat(amount));
+    });
+});
+
+window.onclick = function(event) {
+    const modal = document.getElementById('paymentModal');
+    if (event.target === modal) {
+        closePaymentModal();
+    }
+}
+</script>
+{% endblock %}

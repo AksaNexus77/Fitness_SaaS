@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Payment Reminders - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1><i class="fas fa-bell"></i> Smart Payment Reminders</h1>
+            <p>AI-generated personalized payment reminders for members</p>
+        </div>
+        <div class="header-actions">
+            {% if ai_available %}
+            <span class="badge badge-green"><i class="fas fa-bolt"></i> Gemini AI Active</span>
+            {% else %}
+            <span class="badge badge-blue"><i class="fas fa-microchip"></i> Mock AI Mode</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Overdue Invoices -->
+    {% if overdue_invoices %}
+    <div class="reminder-section">
+        <h3 class="section-title text-danger"><i class="fas fa-exclamation-circle"></i> Overdue Invoices</h3>
+        <div class="invoice-grid">
+            {% for invoice in overdue_invoices %}
+            <div class="invoice-card overdue">
+                <div class="invoice-header">
+                    <h4>{{ invoice.invoice_number }}</h4>
+                    <span class="badge badge-danger">{{ (today - invoice.due_date).days }} days overdue</span>
+                </div>
+                <div class="invoice-body">
+                    <p><i class="fas fa-user"></i> {{ invoice.member.user.first_name }} {{ invoice.member.user.last_name }}</p>
+                    <p><i class="fas fa-dollar-sign"></i> ${{ "%.2f"|format(invoice.total_amount) }}</p>
+                    <p><i class="fas fa-calendar"></i> Due: {{ invoice.due_date.strftime('%b %d, %Y') }}</p>
+                </div>
+                <div class="invoice-actions">
+                    <div class="tone-select">
+                        <label>Tone:</label>
+                        <select id="tone-{{ invoice.id }}" class="form-control form-control-sm">
+                            <option value="friendly">Friendly</option>
+                            <option value="professional" selected>Professional</option>
+                            <option value="firm">Firm</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="generateReminder({{ invoice.id }})">
+                        <i class="fas fa-magic"></i> Generate Reminder
+                    </button>
+                </div>
+                <div class="reminder-output" id="output-{{ invoice.id }}"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending Invoices -->
+    {% if pending_invoices %}
+    <div class="reminder-section">
+        <h3 class="section-title text-warning"><i class="fas fa-clock"></i> Pending Invoices</h3>
+        <div class="invoice-grid">
+            {% for invoice in pending_invoices %}
+            {% if invoice.id not in overdue_invoice_ids %}
+            <div class="invoice-card pending">
+                <div class="invoice-header">
+                    <h4>{{ invoice.invoice_number }}</h4>
+                    <span class="badge badge-warning">Pending</span>
+                </div>
+                <div class="invoice-body">
+                    <p><i class="fas fa-user"></i> {{ invoice.member.user.first_name }} {{ invoice.member.user.last_name }}</p>
+                    <p><i class="fas fa-dollar-sign"></i> ${{ "%.2f"|format(invoice.total_amount) }}</p>
+                    <p><i class="fas fa-calendar"></i> Due: {{ invoice.due_date.strftime('%b %d, %Y') }}</p>
+                </div>
+                <div class="invoice-actions">
+                    <div class="tone-select">
+                        <label>Tone:</label>
+                        <select id="tone-{{ invoice.id }}" class="form-control form-control-sm">
+                            <option value="friendly" selected>Friendly</option>
+                            <option value="professional">Professional</option>
+                            <option value="firm">Firm</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="generateReminder({{ invoice.id }})">
+                        <i class="fas fa-magic"></i> Generate Reminder
+                    </button>
+                </div>
+                <div class="reminder-output" id="output-{{ invoice.id }}"></div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not pending_invoices and not overdue_invoices %}
+    <div class="empty-state">
+        <i class="fas fa-check-circle"></i>
+        <h3>All Caught Up!</h3>
+        <p>There are no pending or overdue invoices right now.</p>
+    </div>
+    {% endif %}
+
+    <!-- Existing Reminders -->
+    {% if existing_reminders %}
+    <div class="reminder-section">
+        <h3 class="section-title"><i class="fas fa-history"></i> Recently Generated Reminders</h3>
+        <div class="reminders-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Invoice</th>
+                        <th>Tone</th>
+                        <th>Message Preview</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reminder in existing_reminders %}
+                    <tr>
+                        <td>{{ reminder.member.user.first_name }} {{ reminder.member.user.last_name }}</td>
+                        <td>{{ reminder.invoice.invoice_number }}</td>
+                        <td><span class="badge badge-{{ reminder.tone }}">{{ reminder.tone|title }}</span></td>
+                        <td>{{ reminder.reminder_message[:80] }}...</td>
+                        <td>
+                            {% if reminder.is_sent %}
+                            <span class="status-badge active">Sent</span>
+                            {% else %}
+                            <button class="btn btn-sm btn-success" onclick="sendReminder({{ reminder.id }})">
+                                <i class="fas fa-paper-plane"></i> Send
+                            </button>
+                            {% endif %}
+                        </td>
+                        <td>{{ reminder.created_at.strftime('%b %d, %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.reminder-section {
+    margin-bottom: 2rem;
+}
+.section-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #2d3748;
+}
+.text-danger { color: #e53e3e; }
+.text-warning { color: #dd6b20; }
+.invoice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+.invoice-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #cbd5e0;
+}
+.invoice-card.overdue {
+    border-left-color: #e53e3e;
+}
+.invoice-card.pending {
+    border-left-color: #dd6b20;
+}
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+.invoice-header h4 {
+    margin: 0;
+    color: #2d3748;
+}
+.invoice-body {
+    color: #4a5568;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+.invoice-body p {
+    margin: 0.3rem 0;
+}
+.invoice-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 0.75rem;
+}
+.tone-select {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.tone-select label {
+    font-size: 0.8rem;
+    color: #718096;
+}
+.tone-select select {
+    min-width: 110px;
+    padding: 0.3rem 0.5rem;
+}
+.reminder-output {
+    background: #f7fafc;
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: #4a5568;
+    white-space: pre-wrap;
+    display: none;
+    border: 1px solid #e2e8f0;
+}
+.reminder-output.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+.badge-friendly { background: #48bb78; color: white; }
+.badge-professional { background: #4299e1; color: white; }
+.badge-firm { background: #ed8936; color: white; }
+.reminders-table-wrapper {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+</style>
+
+<script>
+async function generateReminder(invoiceId) {
+    const tone = document.getElementById(`tone-${invoiceId}`).value;
+    const output = document.getElementById(`output-${invoiceId}`);
+    const btn = event.target.closest('button');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    try {
+        const res = await fetch('/api/generate-reminder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoice_id: invoiceId, tone: tone })
+        });
+        const data = await res.json();
+        
+        if (data.error) {
+            output.textContent = 'Error: ' + data.error;
+        } else {
+            output.innerHTML = `<strong>AI Reminder (${data.tone}):</strong>\n\n${escapeHtml(data.message)}\n\n<button class="btn btn-sm btn-success" onclick="sendReminder(${data.reminder_id})"><i class="fas fa-paper-plane"></i> Send Reminder</button>`;
+        }
+        output.classList.add('show');
+    } catch (err) {
+        output.textContent = 'Failed to generate reminder.';
+        output.classList.add('show');
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-magic"></i> Generate Reminder';
+}
+
+async function sendReminder(reminderId) {
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    
+    try {
+        const res = await fetch(`/api/send-reminder/${reminderId}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            btn.outerHTML = '<span class="status-badge active">Sent</span>';
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+        alert('Failed to send reminder.');
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
+

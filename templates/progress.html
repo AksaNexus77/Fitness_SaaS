@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Progress - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Progress Tracking</h1>
+            <p>{% if member %}Monitoring {{ member.user.first_name }}'s fitness journey{% else %}Track member fitness progress{% endif %}</p>
+        </div>
+        {% if current_user.role in ['admin', 'trainer'] %}
+        <div class="header-actions">
+            <a href="{{ url_for('add_progress') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Add Progress</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if member %}
+    <!-- Member Info -->
+    <div class="member-progress-header">
+        <div class="member-info">
+            <div class="avatar large">
+                {{ member.user.first_name[0] }}{{ member.user.last_name[0] }}
+            </div>
+            <div>
+                <h2>{{ member.user.first_name }} {{ member.user.last_name }}</h2>
+                <p>{{ member.fitness_goal or 'No goal set' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Stats -->
+    <div class="stats-grid mini">
+        <div class="stat-card mini">
+            <div class="stat-icon">
+                <i class="fas fa-weight"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Current Weight</span>
+                <span class="stat-value">{{ progress[0].weight if progress else 'N/A' }} kg</span>
+            </div>
+        </div>
+        <div class="stat-card mini">
+            <div class="stat-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Body Fat</span>
+                <span class="stat-value">{{ progress[0].body_fat_percentage if progress else 'N/A' }}%</span>
+            </div>
+        </div>
+        <div class="stat-card mini">
+            <div class="stat-icon">
+                <i class="fas fa-ruler"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Waist</span>
+                <span class="stat-value">{{ progress[0].waist if progress else 'N/A' }} cm</span>
+            </div>
+        </div>
+        <div class="stat-card mini">
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Records</span>
+                <span class="stat-value">{{ progress|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Chart -->
+    {% if progress|length > 1 %}
+    <div class="chart-card">
+        <div class="card-header">
+            <h3>Weight Progress</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="weightChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Progress Records -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Weight</th>
+                    <th>Body Fat %</th>
+                    <th>Chest</th>
+                    <th>Waist</th>
+                    <th>Hips</th>
+                    <th>Biceps</th>
+                    <th>Thighs</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in progress %}
+                <tr>
+                    <td>{{ record.record_date.strftime('%b %d, %Y') }}</td>
+                    <td>{{ record.weight|default('N/A') }}</td>
+                    <td>{{ record.body_fat_percentage|default('N/A') }}</td>
+                    <td>{{ record.chest|default('N/A') }}</td>
+                    <td>{{ record.waist|default('N/A') }}</td>
+                    <td>{{ record.hips|default('N/A') }}</td>
+                    <td>{{ record.biceps|default('N/A') }}</td>
+                    <td>{{ record.thighs|default('N/A') }}</td>
+                    <td>{{ record.notes|default('') }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="empty-table">
+                        <i class="fas fa-chart-line"></i>
+                        <p>No progress records yet</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <!-- Select Member -->
+    <div class="empty-state-container">
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h3>Select a Member</h3>
+            <p>Choose a member to view their progress</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if progress|length > 1 %}
+<div id="progressChartData" data-progress='{{ progress|reverse|list|tojson | safe }}' style="display: none;"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const progressData = JSON.parse(document.getElementById('progressChartData').dataset.progress);
+    new Chart(document.getElementById('weightChart'), {
+        type: 'line',
+        data: {
+            labels: progressData.map(p => new Date(p.record_date).toLocaleDateString()),
+            datasets: [{
+                label: 'Weight (kg)',
+                data: progressData.map(p => p.weight),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}AI Workout Plans - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>AI Workout Plans</h1>
+            <p>Generate personalized workout plans powered by AI</p>
+        </div>
+        {% if not view_mode %}
+        <div class="header-actions">
+            {% if ai_available %}
+            <span class="badge badge-green"><i class="fas fa-bolt"></i> Gemini AI Active</span>
+            {% else %}
+            <span class="badge badge-blue"><i class="fas fa-microchip"></i> Mock AI Mode</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if view_mode %}
+    <!-- Single Plan View -->
+    <div class="plan-detail-card">
+        <div class="plan-header">
+            <h2>{{ plan.title }}</h2>
+            <div class="plan-meta">
+                <span class="badge badge-purple">{{ plan.fitness_goal }}</span>
+                <span class="badge badge-blue">{{ plan.duration_weeks }} Weeks</span>
+                <span class="badge badge-{% if plan.ai_model == 'gemini-1.5-flash' %}green{% else %}orange{% endif %}">
+                    {{ plan.ai_model }}
+                </span>
+            </div>
+            <p class="plan-date">Generated on {{ plan.created_at.strftime('%B %d, %Y at %H:%M') }}</p>
+        </div>
+        <div class="plan-content">
+            {{ plan.plan_content | safe }}
+        </div>
+        <div class="plan-actions">
+            <a href="{{ url_for('workout_plans') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Plans
+            </a>
+            {% if current_user.role != 'member' or plan.member_id == current_user.member.id %}
+            <form method="POST" action="{{ url_for('delete_workout_plan', plan_id=plan.id) }}" style="display:inline;" onsubmit="return confirm('Delete this plan?');">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Plan List View -->
+    {% if current_user.role != 'member' %}
+    <div class="card generate-card">
+        <div class="card-header">
+            <h3><i class="fas fa-magic"></i> Generate New Plan</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('generate_workout_plan_route') }}" class="form-inline">
+                <div class="form-group">
+                    <label for="member_id">Member</label>
+                    <select name="member_id" id="member_id" class="form-control" required>
+                        <option value="">Select Member</option>
+                        {% for m in members %}
+                        <option value="{{ m.id }}">{{ m.user.first_name }} {{ m.user.last_name }} ({{ m.fitness_goal or 'No Goal' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="duration_weeks">Duration</label>
+                    <select name="duration_weeks" id="duration_weeks" class="form-control">
+                        <option value="2">2 Weeks</option>
+                        <option value="4" selected>4 Weeks</option>
+                        <option value="8">8 Weeks</option>
+                        <option value="12">12 Weeks</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-generate">
+                    <i class="fas fa-robot"></i> Generate AI Plan
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="card generate-card">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('generate_workout_plan_route') }}" class="form-inline">
+                <input type="hidden" name="member_id" value="{{ current_user.member.id }}">
+                <div class="form-group">
+                    <label for="duration_weeks">Duration</label>
+                    <select name="duration_weeks" id="duration_weeks" class="form-control">
+                        <option value="2">2 Weeks</option>
+                        <option value="4" selected>4 Weeks</option>
+                        <option value="8">8 Weeks</option>
+                        <option value="12">12 Weeks</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-generate">
+                    <i class="fas fa-robot"></i> Generate My AI Workout Plan
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="plans-grid">
+        {% for plan in plans %}
+        <div class="plan-card">
+            <div class="plan-card-header">
+                <h4>{{ plan.title }}</h4>
+                <div class="plan-badges">
+                    <span class="badge badge-small badge-purple">{{ plan.fitness_goal }}</span>
+                    <span class="badge badge-small badge-blue">{{ plan.duration_weeks }}w</span>
+                </div>
+            </div>
+            <div class="plan-card-body">
+                <p class="plan-member">
+                    <i class="fas fa-user"></i> {{ plan.member.user.first_name }} {{ plan.member.user.last_name }}
+                </p>
+                <p class="plan-model">
+                    <i class="fas fa-microchip"></i> {{ plan.ai_model }}
+                </p>
+            </div>
+            <div class="plan-card-footer">
+                <span class="plan-date">{{ plan.created_at.strftime('%b %d, %Y') }}</span>
+                <a href="{{ url_for('workout_plan_detail', plan_id=plan.id) }}" class="btn btn-sm btn-primary">View Plan</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state full-width">
+            <i class="fas fa-robot"></i>
+            <h3>No Workout Plans Yet</h3>
+            <p>Generate your first AI-powered workout plan above!</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.generate-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-bottom: 2rem;
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+.generate-card .card-header h3 {
+    color: white;
+    margin-bottom: 1rem;
+}
+.generate-card label {
+    color: rgba(255,255,255,0.9);
+    font-weight: 500;
+}
+.generate-card .form-control {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    min-width: 200px;
+}
+.generate-card .form-control option {
+    color: #333;
+}
+.form-inline {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+.btn-generate {
+    background: #fff;
+    color: #667eea;
+    font-weight: 600;
+}
+.btn-generate:hover {
+    background: #f0f0f0;
+}
+.plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+.plan-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.plan-card-header h4 {
+    margin: 0 0 0.5rem 0;
+    color: #2d3748;
+}
+.plan-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.badge-small {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+}
+.plan-card-body {
+    color: #718096;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+.plan-card-body p {
+    margin: 0.3rem 0;
+}
+.plan-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+}
+.plan-date {
+    color: #a0aec0;
+    font-size: 0.85rem;
+}
+.plan-detail-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.plan-header {
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+.plan-header h2 {
+    margin: 0 0 0.5rem 0;
+    color: #2d3748;
+}
+.plan-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.plan-content {
+    line-height: 1.8;
+    color: #4a5568;
+    white-space: pre-wrap;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.plan-actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+}
+.badge-green { background: #48bb78; color: white; }
+.badge-orange { background: #ed8936; color: white; }
+</style>
+{% endblock %}
+

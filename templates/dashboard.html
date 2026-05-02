@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - FitZone{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Dashboard</h1>
+            <p>Welcome back, {{ current_user.first_name }}! Here's your fitness center overview.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('add_member') if current_user.role == 'admin' else '#' }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Add Member</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon members">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Members</span>
+                <span class="stat-value">{{ stats.total_members }}</span>
+            </div>
+            <div class="stat-trend up">
+                <i class="fas fa-arrow-up"></i>
+                <span>12%</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon trainers">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Trainers</span>
+                <span class="stat-value">{{ stats.total_trainers }}</span>
+            </div>
+            <div class="stat-trend up">
+                <i class="fas fa-arrow-up"></i>
+                <span>5%</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon attendance">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Today's Attendance</span>
+                <span class="stat-value">{{ stats.today_attendance }}</span>
+            </div>
+            <div class="stat-trend neutral">
+                <i class="fas fa-minus"></i>
+                <span>0%</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon revenue">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Monthly Revenue</span>
+                <span class="stat-value">${{ "%.2f"|format(stats.monthly_revenue) }}</span>
+            </div>
+            <div class="stat-trend up">
+                <i class="fas fa-arrow-up"></i>
+                <span>8%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="card-header">
+                <h3>Attendance Trend</h3>
+                <span class="card-subtitle">Last 7 days</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="card-header">
+                <h3>Revenue Trend</h3>
+                <span class="card-subtitle">Last 6 months</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="bottom-grid">
+        <div class="chart-card membership-chart">
+            <div class="card-header">
+                <h3>Membership Distribution</h3>
+                <span class="card-subtitle">By type</span>
+            </div>
+            <div class="chart-container doughnut-container">
+                <canvas id="membershipChart"></canvas>
+            </div>
+        </div>
+
+        <div class="recent-card">
+            <div class="card-header">
+                <h3>Recent Members</h3>
+                <a href="{{ url_for('members') }}" class="view-all">View All</a>
+            </div>
+            <div class="recent-list">
+                {% for member in recent_members %}
+                <div class="recent-item">
+                    <div class="member-avatar">
+                        <span>{{ member.user.first_name[0] }}{{ member.user.last_name[0] }}</span>
+                    </div>
+                    <div class="member-info">
+                        <span class="member-name">{{ member.user.first_name }} {{ member.user.last_name }}</span>
+                        <span class="member-email">{{ member.user.email }}</span>
+                    </div>
+                    <span class="member-type {% if member.membership_type %}{{ member.membership_type }}{% else %}none{% endif %}">
+                        {{ member.membership_type or 'N/A' }}
+                    </span>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <p>No members yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="quick-actions-card">
+            <div class="card-header">
+                <h3>Quick Actions</h3>
+            </div>
+            <div class="quick-actions">
+                <a href="{{ url_for('attendance') }}" class="action-btn">
+                    <div class="action-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <span>Scan Check-in</span>
+                </a>
+                <a href="{{ url_for('create_invoice') }}" class="action-btn">
+                    <div class="action-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <span>Create Invoice</span>
+                </a>
+                <a href="{{ url_for('add_progress') }}" class="action-btn">
+                    <div class="action-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <span>Add Progress</span>
+                </a>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('analytics') }}" class="action-btn">
+                    <div class="action-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <span>View Reports</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+        <div id="chartData" 
+             data-attendance='{{ attendance_trend | tojson | safe }}' 
+             data-revenue='{{ revenue_trend | tojson | safe }}' 
+             data-membership='{{ membership_dist | tojson | safe }}'
+             style="display: none;"></div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Parse data from data attributes
+    const chartDataElement = document.getElementById('chartData');
+    const attendanceData = JSON.parse(chartDataElement.dataset.attendance);
+    const revenueData = JSON.parse(chartDataElement.dataset.revenue);
+    const membershipData = JSON.parse(chartDataElement.dataset.membership);
+
+    // Attendance Chart
+    new Chart(document.getElementById('attendanceChart'), {
+        type: 'line',
+        data: {
+            labels: attendanceData.map(d => d.date),
+            datasets: [{
+                label: 'Attendance',
+                data: attendanceData.map(d => d.count),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Revenue Chart
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'bar',
+        data: {
+            labels: revenueData.map(d => d.month),
+            datasets: [{
+                label: 'Revenue',
+                data: revenueData.map(d => d.amount),
+                backgroundColor: [
+                    '#667eea', '#764ba2', '#6B8DD6', '#8E37D7', '#667eea', '#764ba2'
+                ],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value;
+                        }
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Membership Distribution Chart
+    new Chart(document.getElementById('membershipChart'), {
+        type: 'doughnut',
+        data: {
+            labels: membershipData.map(d => d.type || 'None'),
+            datasets: [{
+                data: membershipData.map(d => d.count),
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+</script>
+{% endblock %}

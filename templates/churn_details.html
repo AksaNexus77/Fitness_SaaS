@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Churn Details - {{ member.user.get_full_name() }} - FitZone{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3">Churn Risk Details</h1>
+            <p class="text-muted">Detailed analysis for {{ member.user.get_full_name() }}</p>
+            <a href="{{ url_for('churn_prediction') }}" class="btn btn-outline-secondary mb-3">
+                ← Back to Churn Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Churn Risk Assessment</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h4>Churn Probability</h4>
+                            <h1 class="display-4 text-danger mb-0">
+                                {{ churn_probability }}%
+                            </h1>
+                        </div>
+                        <div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-danger" role="progressbar" 
+                                     style="width: {{ churn_probability }}%" 
+                                     aria-valuenow="{{ churn_probability }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                            <small class="text-muted">Risk Level</small>
+                        </div>
+                    </div>
+                    
+                    {% if churn_probability >= 80 %}
+                    <div class="alert alert-danger">
+                        <strong>Critical Risk:</strong> This member has a very high probability of churning. Immediate intervention is recommended.
+                    </div>
+                    {% elif churn_probability >= 60 %}
+                    <div class="alert alert-warning">
+                        <strong>High Risk:</strong> This member shows concerning patterns that may lead to churn. Consider proactive engagement.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <strong>Moderate Risk:</strong> This member shows some risk factors but is not currently at high risk of churning.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Member Overview</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Name:</strong> {{ member.user.get_full_name() }}</p>
+                    <p><strong>Email:</strong> {{ member.user.email }}</p>
+                    <p><strong>Membership Type:</strong> {{ member.membership_type|title }}</p>
+                    <p><strong>Membership Start:</strong> {{ member.membership_start.strftime('%B %d, %Y') if member.membership_start else 'N/A' }}</p>
+                    <p><strong>Membership End:</strong> {{ member.membership_end.strftime('%B %d, %Y') if member.membership_end else 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Engagement Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Recent Attendance (30 days)</small>
+                        <h3>{{ recent_attendance }}</h3>
+                        <p class="text-muted">check-ins</p>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Days Since Last Visit</small>
+                        <h3>{{ days_since_last_visit }}</h3>
+                        <p class="text-muted">days</p>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Progress Records</small>
+                        <h3>{{ progress_count }}</h3>
+                        <p class="text-muted">records logged</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Financial Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Avg. Payment (3 months)</small>
+                        <h3>${{ avg_payment }}</h3>
+                        <p class="text-muted">per payment</p>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Overdue Invoices</small>
+                        <h3>{{ overdue_invoices }}</h3>
+                        <p class="text-muted">invoices</p>
+                    </div>
+                    {% if overdue_invoices > 0 %}
+                    <div class="alert alert-danger mt-3">
+                        <strong>Action Required:</strong> This member has overdue payments that need immediate attention.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recommended Actions</h5>
+                </div>
+                <div class="card-body">
+                    {% if churn_probability >= 80 %}
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Immediate Outreach:</strong> Contact member within 24 hours via phone or in-person visit.
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Personalized Offer:</strong> Provide a complimentary personal training session or membership discount.
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Check-In Meeting:</strong> Schedule a meeting to understand their concerns and fitness goals.
+                        </li>
+                    </ul>
+                    {% elif churn_probability >= 60 %}
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Proactive Engagement:</strong> Send a personalized message checking in on their progress.
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Incentive:</strong> Offer a free guest pass or specialty class invitation.
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Follow-Up:</strong> Invite them to a goal review session with a trainer.
+                        </li>
+                    </ul>
+                    {% else %}
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Regular Check-In:</strong> Continue standard engagement through automated messages.
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Monitor:</strong> Keep an eye on attendance and payment patterns.
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Engage:</strong> Encourage participation in community events or challenges.
+                        </li>
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

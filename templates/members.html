@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Members - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Members</h1>
+            <p>Manage all registered members</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('add_member') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Add Member</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <form method="GET" class="search-form">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" name="search" placeholder="Search members..." value="{{ search }}">
+            </div>
+            <select name="filter" class="filter-select" onchange="this.form.submit()">
+                <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Members</option>
+                <option value="active" {% if filter_type == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if filter_type == 'inactive' %}selected{% endif %}>Inactive</option>
+                <option value="expired" {% if filter_type == 'expired' %}selected{% endif %}>Expired</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Members Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Membership</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr>
+                    <td>
+                        <div class="member-cell">
+                            <div class="avatar">
+                                {{ member.user.first_name[0] }}{{ member.user.last_name[0] }}
+                            </div>
+                            <span>{{ member.user.first_name }} {{ member.user.last_name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ member.user.email }}</td>
+                    <td>{{ member.user.phone or 'N/A' }}</td>
+                    <td>
+                        <span class="badge badge-{% if member.membership_type == 'monthly' %}blue{% elif member.membership_type == 'yearly' %}green{% elif member.membership_type == 'quarterly' %}purple{% else %}gray{% endif %}">
+                            {{ member.membership_type or 'None' }}
+                        </span>
+                    </td>
+                    <td>{{ member.membership_start.strftime('%b %d, %Y') if member.membership_start else 'N/A' }}</td>
+                    <td>{{ member.membership_end.strftime('%b %d, %Y') if member.membership_end else 'N/A' }}</td>
+                    <td>
+                        {% if member.membership_end and member.membership_end < today %}
+                        <span class="status-badge expired">Expired</span>
+                        {% elif member.is_active %}
+                        <span class="status-badge active">Active</span>
+                        {% else %}
+                        <span class="status-badge inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('member_detail', member_id=member.id) }}" class="btn-icon" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('edit_member', member_id=member.id) }}" class="btn-icon" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('delete_member', member_id=member.id) }}" style="display:inline;">
+                                <button type="submit" class="btn-icon danger" title="Delete" onclick="return confirm('Are you sure you want to deactivate this member?')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="empty-table">
+                        <i class="fas fa-users"></i>
+                        <p>No members found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

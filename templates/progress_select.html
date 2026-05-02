@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Select Member - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Progress Tracking</h1>
+            <p>Select a member to view their fitness progress</p>
+        </div>
+        {% if current_user.role in ['admin', 'trainer'] %}
+        <div class="header-actions">
+            <a href="{{ url_for('add_progress') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                <span>Add Progress</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="members-grid">
+        {% for member in members %}
+        <a href="{{ url_for('member_progress', member_id=member.id) }}" class="member-card">
+            <div class="member-avatar">
+                {{ member.user.first_name[0] }}{{ member.user.last_name[0] }}
+            </div>
+            <div class="member-details">
+                <h3>{{ member.user.first_name }} {{ member.user.last_name }}</h3>
+                <p>{{ member.fitness_goal or 'No goal set' }}</p>
+                <span class="membership-badge">{{ member.membership_type or 'No membership' }}</span>
+            </div>
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% else %}
+        <div class="empty-state-container full-width">
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>No Members Found</h3>
+                <p>Add members to start tracking their progress</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{% if class_obj %}Edit{% else %}Add{% endif %} Class - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <a href="{{ url_for('classes_list') }}" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to Classes
+            </a>
+            <h1>{% if class_obj %}Edit{% else %}Add{% endif %} Class</h1>
+            <p>{% if class_obj %}Update{% else %}Create a new{% endif %} fitness class</p>
+        </div>
+    </div>
+
+    <form method="POST" class="form-container-wide">
+        <div class="form-section">
+            <h3>Class Information</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="name">Class Name *</label>
+                    <input type="text" id="name" name="name" required 
+                           value="{{ class_obj.name if class_obj else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="trainer_id">Trainer *</label>
+                    <select id="trainer_id" name="trainer_id" required>
+                        <option value="">Select Trainer</option>
+                        {% for trainer in trainers %}
+                        <option value="{{ trainer.id }}" {% if class_obj and class_obj.trainer_id == trainer.id %}selected{% endif %}>
+                            {{ trainer.user.first_name }} {{ trainer.user.last_name }} - {{ trainer.specialization or 'General' }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="day_of_week">Day of Week</label>
+                    <select id="day_of_week" name="day_of_week">
+                        <option value="0" {% if class_obj and class_obj.day_of_week == 0 %}selected{% endif %}>Monday</option>
+                        <option value="1" {% if class_obj and class_obj.day_of_week == 1 %}selected{% endif %}>Tuesday</option>
+                        <option value="2" {% if class_obj and class_obj.day_of_week == 2 %}selected{% endif %}>Wednesday</option>
+                        <option value="3" {% if class_obj and class_obj.day_of_week == 3 %}selected{% endif %}>Thursday</option>
+                        <option value="4" {% if class_obj and class_obj.day_of_week == 4 %}selected{% endif %}>Friday</option>
+                        <option value="5" {% if class_obj and class_obj.day_of_week == 5 %}selected{% endif %}>Saturday</option>
+                        <option value="6" {% if class_obj and class_obj.day_of_week == 6 %}selected{% endif %}>Sunday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="start_time">Start Time</label>
+                    <input type="time" id="start_time" name="start_time" 
+                           value="{{ class_obj.start_time.strftime('%H:%M') if class_obj and class_obj.start_time else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="end_time">End Time</label>
+                    <input type="time" id="end_time" name="end_time" 
+                           value="{{ class_obj.end_time.strftime('%H:%M') if class_obj and class_obj.end_time else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="max_participants">Max Participants</label>
+                    <input type="number" id="max_participants" name="max_participants" 
+                           value="{{ class_obj.max_participants if class_obj else 20 }}">
+                </div>
+                <div class="form-group full-width">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3">{{ class_obj.description if class_obj else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                <span>{% if class_obj %}Update{% else %}Create{% endif %} Class</span>
+            </button>
+            <a href="{{ url_for('classes_list') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

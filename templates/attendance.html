@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>Attendance</h1>
+            <p>Track member check-ins and check-outs</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="showCheckInModal()">
+                <i class="fas fa-qrcode"></i>
+                <span>Quick Check-In</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid mini">
+        <div class="stat-card mini">
+            <div class="stat-icon attendance">
+                <i class="fas fa-sign-in-alt"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Checked In</span>
+                <span class="stat-value">{{ total_checked_in }}</span>
+            </div>
+        </div>
+        <div class="stat-card mini">
+            <div class="stat-icon success">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Checked Out</span>
+                <span class="stat-value">{{ total_checked_out }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="filters-bar">
+        <form method="GET" class="date-filter-form">
+            <label for="date">Select Date:</label>
+            <input type="date" id="date" name="date" value="{{ selected_date }}" onchange="this.form.submit()">
+        </form>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance %}
+                <tr>
+                    <td>
+                        <div class="member-cell">
+                            <div class="avatar small">
+                                {{ record.member.user.first_name[0] }}{{ record.member.user.last_name[0] }}
+                            </div>
+                            <span>{{ record.member.user.first_name }} {{ record.member.user.last_name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ record.check_in.strftime('%H:%M:%S') }}</td>
+                    <td>{{ record.check_out.strftime('%H:%M:%S') if record.check_out else '-' }}</td>
+                    <td>{{ record.duration_minutes|default('0') }} min</td>
+                    <td>
+                        {% if record.check_out %}
+                        <span class="status-badge completed">Completed</span>
+                        {% else %}
+                        <span class="status-badge active">In Gym</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not record.check_out %}
+                        <form method="POST" action="{{ url_for('check_out', attendance_id=record.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Check Out
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="empty-table">
+                        <i class="fas fa-clock"></i>
+                        <p>No attendance records for this date</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Check In Modal -->
+<div id="checkInModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h2>Check In Member</h2>
+        <div class="member-search">
+            <input type="text" id="memberSearch" placeholder="Search member by name or email..." onkeyup="searchMembers()">
+        </div>
+        <div id="searchResults" class="search-results"></div>
+    </div>
+</div>
+
+<script>
+function showCheckInModal() {
+    document.getElementById('checkInModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('checkInModal').style.display = 'none';
+}
+
+function searchMembers() {
+    const query = document.getElementById('memberSearch').value;
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '';
+        return;
+    }
+    
+    fetch(`/api/members/search?q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+            const results = document.getElementById('searchResults');
+            if (data.length === 0) {
+                results.innerHTML = '<p class="no-results">No members found</p>';
+                return;
+            }
+            results.innerHTML = data.map(member => `
+                <form method="POST" action="{{ url_for('check_in') }}">
+                    <input type="hidden" name="member_id" value="${member.id}">
+                    <button type="submit" class="member-result">
+                        <div class="avatar small">${member.name.split(' ').map(n => n[0]).join('')}</div>
+                        <div class="member-info">
+                            <span class="name">${member.name}</span>
+                            <span class="email">${member.email}</span>
+                        </div>
+                        <span class="membership">${member.membership || 'N/A'}</span>
+                    </button>
+                </form>
+            `).join('');
+        });
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('checkInModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}

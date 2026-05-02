@@ -1,0 +1,183 @@
+# ==================== PYTHON ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+wheels/
+share/python-wheels/
+MANIFEST
+
+# ==================== VIRTUAL ENVIRONMENTS ====================
+.venv/
+venv/
+env/
+ENV/
+.env.bak
+.venv.bak
+
+# ==================== ENVIRONMENT & SECRETS ====================
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+*.pem
+*.key
+*.cert
+*.crt
+secrets.json
+secrets.yaml
+
+# ==================== DATABASE ====================
+instance/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+# MySQL dumps
+*.sql
+*.dump
+
+# ==================== FLASK SPECIFIC ====================
+instance/
+.webassets-cache
+flask_session/
+
+# ==================== UPLOADS & MEDIA ====================
+static/uploads/
+static/media/
+uploads/
+media/
+
+# ==================== LOGS ====================
+*.log
+*.log.*
+logs/
+log/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==================== OS FILES ====================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==================== EDITORS & IDEs ====================
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+Session.vim
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Spyder
+.spyderproject.db
+.spyproject
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# ==================== TESTING ====================
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+nosetests.xml
+test-results/
+test-reports/
+
+# ==================== MYPY / TYPE CHECKING ====================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# ==================== CELERY ====================
+celerybeat-schedule
+celerybeat.pid
+
+# ==================== MISC BUILD ARTIFACTS ====================
+*.mo
+*.pot
+*.pyc
+docs/_build/
+target/
+profile_default/
+ipython_config.py
+.pdm.toml
+__pypackages__/
+
+# ==================== TEMP FILES ====================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.swp
+_init_db.py

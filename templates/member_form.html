@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{% if member %}Edit{% else %}Add{% endif %} Member - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <a href="{{ url_for('members') }}" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to Members
+            </a>
+            <h1>{% if member %}Edit{% else %}Add{% endif %} Member</h1>
+            <p>{% if member %}Update{% else %}Register a new{% endif %} member</p>
+        </div>
+    </div>
+
+    <form method="POST" class="form-container-wide">
+        <!-- Personal Information -->
+        <div class="form-section">
+            <h3>Personal Information</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="first_name">First Name *</label>
+                    <input type="text" id="first_name" name="first_name" required 
+                           value="{{ member.user.first_name if member else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name *</label>
+                    <input type="text" id="last_name" name="last_name" required 
+                           value="{{ member.user.last_name if member else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required 
+                           value="{{ member.user.email if member else '' }}" {% if member %}readonly{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone" name="phone" 
+                           value="{{ member.user.phone if member else '' }}">
+                </div>
+                {% if not member %}
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Membership Details -->
+        <div class="form-section">
+            <h3>Membership Details</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="membership_type">Membership Type</label>
+                    <select id="membership_type" name="membership_type">
+                        <option value="">Select Type</option>
+                        <option value="monthly" {% if member and member.membership_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                        <option value="quarterly" {% if member and member.membership_type == 'quarterly' %}selected{% endif %}>Quarterly</option>
+                        <option value="yearly" {% if member and member.membership_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="membership_start">Start Date</label>
+                    <input type="date" id="membership_start" name="membership_start" 
+                           value="{{ member.membership_start if member and member.membership_start else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="membership_end">End Date</label>
+                    <input type="date" id="membership_end" name="membership_end" 
+                           value="{{ member.membership_end if member and member.membership_end else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Details -->
+        <div class="form-section">
+            <h3>Personal Details</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="date_of_birth">Date of Birth</label>
+                    <input type="date" id="date_of_birth" name="date_of_birth" 
+                           value="{{ member.date_of_birth if member and member.date_of_birth else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="">Select</option>
+                        <option value="male" {% if member and member.gender == 'male' %}selected{% endif %}>Male</option>
+                        <option value="female" {% if member and member.gender == 'female' %}selected{% endif %}>Female</option>
+                        <option value="other" {% if member and member.gender == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="height">Height (cm)</label>
+                    <input type="number" step="0.1" id="height" name="height" 
+                           value="{{ member.height if member and member.height else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="weight">Weight (kg)</label>
+                    <input type="number" step="0.1" id="weight" name="weight" 
+                           value="{{ member.weight if member and member.weight else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="form-section">
+            <h3>Additional Information</h3>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="address">Address</label>
+                    <textarea id="address" name="address" rows="2">{{ member.address if member else '' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="emergency_contact">Emergency Contact</label>
+                    <input type="text" id="emergency_contact" name="emergency_contact" 
+                           value="{{ member.emergency_contact if member else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="emergency_phone">Emergency Phone</label>
+                    <input type="text" id="emergency_phone" name="emergency_phone" 
+                           value="{{ member.emergency_phone if member else '' }}">
+                </div>
+                <div class="form-group full-width">
+                    <label for="fitness_goal">Fitness Goal</label>
+                    <input type="text" id="fitness_goal" name="fitness_goal" 
+                           value="{{ member.fitness_goal if member else '' }}">
+                </div>
+                <div class="form-group full-width">
+                    <label for="medical_conditions">Medical Conditions</label>
+                    <textarea id="medical_conditions" name="medical_conditions" rows="2">{{ member.medical_conditions if member else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                <span>{% if member %}Update{% else %}Create{% endif %} Member</span>
+            </button>
+            <a href="{{ url_for('members') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

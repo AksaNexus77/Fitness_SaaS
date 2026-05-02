@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ trainer.user.first_name }} {{ trainer.user.last_name }} - FitZone{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <a href="{{ url_for('trainers') }}" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to Trainers
+            </a>
+            <h1>{{ trainer.user.first_name }} {{ trainer.user.last_name }}</h1>
+            <p>Trainer Profile</p>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar large">
+                    {{ trainer.user.first_name[0] }}{{ trainer.user.last_name[0] }}
+                </div>
+                <h2>{{ trainer.user.first_name }} {{ trainer.user.last_name }}</h2>
+                <span class="badge {% if trainer.is_available %}badge-green{% else %}badge-red{% endif %}">
+                    {{ 'Available' if trainer.is_available else 'Unavailable' }}
+                </span>
+            </div>
+            <div class="profile-details">
+                <div class="detail-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ trainer.user.email }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-phone"></i>
+                    <span>{{ trainer.user.phone or 'Not provided' }}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-briefcase"></i>
+                    <span>{{ trainer.experience_years }} years experience</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>${{ trainer.hourly_rate }}/hour</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-certificate"></i>
+                    <span>{{ trainer.certification or 'Certified' }}</span>
+                </div>
+            </div>
+            <div class="profile-bio">
+                <h4>Bio</h4>
+                <p>{{ trainer.bio or 'No bio available.' }}</p>
+            </div>
+        </div>
+
+        <div class="full-width-card">
+            <div class="card-header">
+                <h3>Assigned Classes</h3>
+            </div>
+            <div class="classes-list">
+                {% for class in classes %}
+                <div class="class-item">
+                    <div class="class-icon">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <div class="class-info">
+                        <h4>{{ class.name }}</h4>
+                        <p>{{ class.description }}</p>
+                        <span class="class-time">
+                            <i class="fas fa-clock"></i>
+                            {{ class.start_time.strftime('%H:%M') }} - {{ class.end_time.strftime('%H:%M') }}
+                        </span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No classes assigned</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
